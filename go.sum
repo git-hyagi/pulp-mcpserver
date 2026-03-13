@@ -1,5 +1,5 @@
-github.com/git-hyagi/pulp-bindings-go/bindings v0.0.0-20260312184502-797d17007662 h1:Atn24ZDklXX/NxwjDKSWi0QaoJ2C66G97dJMZDNB/RM=
-github.com/git-hyagi/pulp-bindings-go/bindings v0.0.0-20260312184502-797d17007662/go.mod h1:kIIkecz65ekc3YH/DnIahLbJOIoRth4hBG+9alKAR9k=
+github.com/git-hyagi/pulp-bindings-go/bindings v0.0.0-20260313220926-9730a1b899f5 h1:r1Z5tHML82yYZIyLGeWt6AUajcAn/duq1dlxUMLh2IM=
+github.com/git-hyagi/pulp-bindings-go/bindings v0.0.0-20260313220926-9730a1b899f5/go.mod h1:kIIkecz65ekc3YH/DnIahLbJOIoRth4hBG+9alKAR9k=
 github.com/golang-jwt/jwt/v5 v5.3.0 h1:pv4AsKCKKZuqlgs5sUmn4x8UlGa0kEVt/puTpKx9vvo=
 github.com/golang-jwt/jwt/v5 v5.3.0/go.mod h1:fxCRLWMO43lRc8nhHWY6LGqRcf+1gQWArsqaEUEa5bE=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=

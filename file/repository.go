@@ -5,8 +5,9 @@ import (
 )
 
 type ListReposInput struct {
-	Domain *string `json:"domain,omitempty" jsonschema:"Pulp domain to query. Defaults to 'default' if not provided."`
-	Name   *string `json:"name,omitempty" jsonschema:"Filter repositories by name. Leave empty to list all."`
+	Domain  *string `json:"domain,omitempty" jsonschema:"Pulp domain to query. Defaults to 'default' if not provided."`
+	Name    *string `json:"name,omitempty" jsonschema:"Filter repositories by name. Leave empty to list all."`
+	Version *string `json:"version,omitempty" jsonschema:"Repository version number. Leave empty to use latest."`
 }
 
 type RepositoryResponse struct {
