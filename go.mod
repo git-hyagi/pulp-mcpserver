@@ -3,7 +3,7 @@ module pulp-mcpserver
 go 1.25.3
 
 require (
-	github.com/git-hyagi/pulp-bindings-go/bindings v0.0.0-20260312184502-797d17007662
+	github.com/git-hyagi/pulp-bindings-go/bindings v0.0.0-20260313220926-9730a1b899f5
 	github.com/modelcontextprotocol/go-sdk v1.4.0
 )
 
