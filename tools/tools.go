@@ -3,36 +3,43 @@ package tools
 import (
 	"context"
 	"fmt"
+	"pulp-mcpserver/pulp"
+	"pulp-mcpserver/python"
+	"strings"
 
 	"github.com/git-hyagi/pulp-bindings-go/bindings"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// PulpClient embeds pulp.PulpClient and adds MCP tool integration.
+type PulpClient struct {
+	*pulp.PulpClient
+}
+
+func PulpFunction(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error) {
+	plugin := strings.ToLower(pulpClient.Pulp.Plugin)
+
+	switch plugin {
+	case "python":
+		return python.PythonTools(ctx, pulpClient)
+	}
+	return nil, nil, nil
+}
+
 // NewPulpClient creates a new PulpClient with the given API client and credentials.
 func NewPulpClient(client *bindings.APIClient, auth bindings.BasicAuth) *PulpClient {
-	return &PulpClient{Client: client, Auth: auth}
+	return &PulpClient{PulpClient: pulp.NewPulpClient(client, auth)}
 }
 
-func getPulpDomain(domain *string) string {
-	if domain != nil && *domain != "" {
-		return *domain
-	}
-	return "default"
-}
-
-func (p *PulpClient) authCtx(ctx context.Context) context.Context {
-	return context.WithValue(ctx, bindings.ContextBasicAuth, p.Auth)
-}
-
-func (p *PulpClient) ResourceFactory(ctx context.Context, req *mcp.CallToolRequest, in PulpResource) (
+func (p *PulpClient) PulpTool(ctx context.Context, req *mcp.CallToolRequest, in pulp.PulpResource) (
 	*mcp.CallToolResult,
 	any,
 	error,
 ) {
-	authCtx := p.authCtx(ctx)
-	domain := getPulpDomain(in.Domain)
+	p.Pulp = in
+	authCtx := p.AuthCtx(ctx)
 
-	pulpFunc, _, err := in.PulpFunction(authCtx, p.Client, domain)
+	pulpFunc, _, err := PulpFunction(authCtx, *p.PulpClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("ERROR! Failed to get resource function %w", err)
 	}
