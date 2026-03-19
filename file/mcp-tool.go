@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/git-hyagi/pulp-bindings-go/bindings"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -29,6 +30,79 @@ func getPulpDomain(domain *string) string {
 	}
 	return "default"
 }
+
+func (p PulpClient) init() any {
+	rpmConfig := ListInput{
+		API:          p.Client.RepositoriesFileAPI,
+		ListMethod:   "RepositoriesRPMRPMList",
+		FilterMethod: "Name",
+	}
+	return rpmConfig
+}
+
+func (p *PulpClient) _ListResource(ctx context.Context, req *mcp.CallToolRequest, in ListInput) (
+	*mcp.CallToolResult,
+	any,
+	error,
+) {
+	domain := getPulpDomain(in.Domain)
+	resourceAPI := reflect.ValueOf(in.API).String()
+	// bindings.APIClient.RepositoriesFileFileList(p.authCtx(ctx),domain)
+	request := reflect.ValueOf(p.Client).
+		Elem().FieldByName(resourceAPI).
+		MethodByName(in.ListMethod).
+		Call([]reflect.Value{
+			reflect.ValueOf(p.authCtx(ctx)), reflect.ValueOf(domain),
+		})
+	if in.Name != nil {
+		//request[0] = <Resource><PulpType>API<Resources><PulpType><PulpType>ListRequest
+		request = request[0].MethodByName(in.FilterMethod).Call([]reflect.Value{
+			reflect.ValueOf(*in.Name),
+		})
+	}
+	list := request[0].MethodByName("Execute").Call(nil)
+	//list[0] = bindings.Paginated<pulpType><PulpType><Resource>ResponseList
+	//list[1] = *http.Response
+	//list[2] = error
+	if !list[2].IsNil() {
+		return nil, RepositoryResponse{}, list[2].Interface().(error)
+	}
+
+	results := list[0].Elem().FieldByName("Results").Interface()
+	return nil, results, nil
+}
+
+/* func (p *PulpClient) ListResource(ctx context.Context, req *mcp.CallToolRequest, in ListResourceInput) (
+	*mcp.CallToolResult,
+	any,
+	error,
+) {
+	domain := getPulpDomain(in.Domain)
+	var request interface{}
+	switch in.ContentType {
+	case "python":
+		switch in.ResourceType {
+		case "repository":
+			request = p.Client.RepositoriesPythonAPI.RepositoriesPythonPythonList(p.authCtx(ctx), domain)
+		case "distribution":
+			request = p.Client.DistributionsPypiAPI.DistributionsPythonPypiList(p.authCtx(ctx), domain)
+		case "remote":
+			request = p.Client.RemotesPythonAPI.RemotesPythonPythonList(p.authCtx(ctx), domain)
+		case "content":
+			request = p.Client.ContentPackagesAPI.ContentPythonPackagesList(p.authCtx(ctx), domain)
+		}
+	}
+	if in.Name != nil {
+		//request = request.NameRegex(*in.Name)
+		request = reflect.ValueOf(request).MethodByName("NameRegex").Call([]reflect.Value{reflect.ValueOf(*in.Name)})
+	}
+
+	if err != nil {
+		return nil, RepositoryResponse{}, err
+	}
+
+	return nil, RepositoryResponse{list.Results}, nil
+} */
 
 func (p *PulpClient) ListFileRepositories(ctx context.Context, req *mcp.CallToolRequest, in ListReposInput) (
 	*mcp.CallToolResult,

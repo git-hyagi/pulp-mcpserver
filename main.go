@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"pulp-mcpserver/file"
+	"pulp-mcpserver/tools"
 
 	"github.com/git-hyagi/pulp-bindings-go/bindings"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -43,6 +44,11 @@ func main() {
 		bindings.BasicAuth{UserName: pulpUser, Password: pulpPassword},
 	)
 
+	pulpClientTools := tools.NewPulpClient(
+		bindings.NewAPIClient(cfg),
+		bindings.BasicAuth{UserName: pulpUser, Password: pulpPassword},
+	)
+
 	server := mcp.NewServer(&mcp.Implementation{Name: "pulp-mcp", Version: "v0.0.1"}, nil)
 
 	mcp.AddTool(server, &mcp.Tool{Name: "pulp_list_file_repos", Description: "list pulp file repositories"}, pulpClient.ListFileRepositories)
@@ -50,6 +56,8 @@ func main() {
 	mcp.AddTool(server, &mcp.Tool{Name: "pulp_list_file_distributions", Description: "list pulp file distributions"}, pulpClient.ListFileDistributions)
 	mcp.AddTool(server, &mcp.Tool{Name: "pulp_list_file_contents", Description: "list pulp file contents"}, pulpClient.ListFileContents)
 	mcp.AddTool(server, &mcp.Tool{Name: "pulp_list_file_repository_contents", Description: "list pulp file repository contents"}, pulpClient.ListFileRepositoryContents)
+	//mcp.AddTool(server, &mcp.Tool{Name: "pulp_list", Description: "CRUD of Pulp resources of any content type (python,rpm,mvn,npm,container) and resource type (repository,remote,distribution,content)"}, pulpClient.ListResource)
+	mcp.AddTool(server, &mcp.Tool{Name: "pulp_manage_resources", Description: "CRUD for all pulp plugins (rpm,python) resources (repositories,remotes,distributions,contents)"}, pulpClientTools.ResourceFactory)
 
 	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		log.Fatal(err)
