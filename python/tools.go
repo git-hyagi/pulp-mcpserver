@@ -1,42 +1,13 @@
-package tools
+package python
 
 import (
 	"context"
 	"fmt"
+	"pulp-mcpserver/pulp"
 	"strings"
 
 	"github.com/git-hyagi/pulp-bindings-go/bindings"
 )
-
-// PulpClient wraps the Pulp API client and auth credentials.
-type PulpClient struct {
-	Client *bindings.APIClient
-	Auth   bindings.BasicAuth
-}
-
-type PulpResource struct {
-	Domain   *string `json:"domain,omitempty" jsonschema:"Pulp domain to query. Defaults to 'default' if not provided."`
-	Name     *string `json:"name,omitempty" jsonschema:"Filter contents by name. Leave empty to list all."`
-	Plugin   string  `json:"plugin,omitempty" jsonschema:"Pulp plugin. Can be one of: python, rpm"`
-	Resource string  `json:"resource,omitempty" jsonschema:"Pulp resource. Cane be one of: distribution,remote,repository,content,package"`
-	Action   string  `json:"action,omitempty" jsonschema:"Action to take. Can be one of: create, read, list, update, delete, sync"`
-
-	// Fields for remotes
-	Url         *string  `json:"url,omitempty" jsonschema:"URL of the remote source (required for remote create)."`
-	Policy      *string  `json:"policy,omitempty" jsonschema:"Download policy: immediate, on_demand, or streamed."`
-	Includes    []string `json:"includes,omitempty" jsonschema:"Package specifiers to include (for Python remotes)."`
-	Excludes    []string `json:"excludes,omitempty" jsonschema:"Package specifiers to exclude (for Python remotes)."`
-	Prereleases *bool    `json:"prereleases,omitempty" jsonschema:"Include pre-release packages (for Python remotes)."`
-
-	// Fields for repositories
-	Description *string `json:"description,omitempty" jsonschema:"Description of the repository."`
-	Remote      *string `json:"remote,omitempty" jsonschema:"Remote to associate (pulp_href or name). Used by repositories and distributions."`
-	Autopublish *bool   `json:"autopublish,omitempty" jsonschema:"Auto-publish after content changes."`
-
-	// Fields for distributions
-	BasePath   *string `json:"base_path,omitempty" jsonschema:"Base path for the distribution URL (required for distribution create)."`
-	Repository *string `json:"repository,omitempty" jsonschema:"Repository to serve (pulp_href or name). Used by distributions."`
-}
 
 // trimHrefPrefix strips the leading slash from a pulp_href to work around
 // the Go OpenAPI bindings using url.PathEscape on href path parameters,
@@ -45,14 +16,23 @@ func trimHrefPrefix(href string) string {
 	return strings.TrimPrefix(href, "/")
 }
 
-func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClient, domain string) (any, any, error) {
-	plugin := strings.ToLower(p.Plugin)
-	resource := strings.ToLower(p.Resource)
-	action := strings.ToLower(p.Action)
+func getPulpDomain(domain *string) string {
+	if domain != nil && *domain != "" {
+		return *domain
+	}
+	return "default"
+}
+
+func PythonTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error) {
+	plugin := strings.ToLower(pulpClient.Pulp.Plugin)
+	resource := strings.ToLower(pulpClient.Pulp.Resource)
+	action := strings.ToLower(pulpClient.Pulp.Action)
+	domain := getPulpDomain(pulpClient.Pulp.Domain)
+	client := pulpClient.Client
 
 	var name string
-	if p.Name != nil {
-		name = *p.Name
+	if pulpClient.Pulp.Name != nil {
+		name = *pulpClient.Pulp.Name
 	}
 
 	switch plugin {
@@ -90,6 +70,8 @@ func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClie
 				}, httpResp, nil
 			}
 		case "repositories", "repository":
+			//TODO: missing update
+			//TODO: missing labels
 			switch action {
 			case "list":
 				request := client.RepositoriesPythonAPI.RepositoriesPythonPythonList(ctx, domain)
@@ -104,9 +86,9 @@ func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClie
 				}
 				repo := bindings.PythonPythonRepository{
 					Name:        name,
-					Description: p.Description,
-					Remote:      p.Remote,
-					Autopublish: p.Autopublish,
+					Description: pulpClient.Pulp.Description,
+					Remote:      pulpClient.Pulp.Remote,
+					Autopublish: pulpClient.Pulp.Autopublish,
 				}
 				return request.PythonPythonRepository(repo).Execute()
 			case "delete":
@@ -124,8 +106,8 @@ func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClie
 					return nil, nil, err
 				}
 				syncRequest := client.RepositoriesPythonAPI.RepositoriesPythonPythonSync(ctx, trimHrefPrefix(*repo.Results[0].PulpHref))
-				if p.Remote != nil {
-					remote := *p.Remote
+				if pulpClient.Pulp.Remote != nil {
+					remote := *pulpClient.Pulp.Remote
 					// if the remote is not a pulp_href, resolve the name to its href
 					if !strings.HasPrefix(remote, "/") {
 						remoteRequest := client.RemotesPythonAPI.RemotesPythonPythonList(ctx, domain)
@@ -145,6 +127,8 @@ func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClie
 			}
 
 		case "distributions", "distribution":
+			//TODO: missing update
+			//TODO: missing labels
 			switch action {
 			case "list":
 				request := client.DistributionsPypiAPI.DistributionsPythonPypiList(ctx, domain)
@@ -158,16 +142,16 @@ func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClie
 					return nil, nil, fmt.Errorf("ERROR! Failed to create a distribution, at least a name must be provided")
 				}
 				var basePath string
-				if p.BasePath != nil {
-					basePath = *p.BasePath
+				if pulpClient.Pulp.BasePath != nil {
+					basePath = *pulpClient.Pulp.BasePath
 				}
 				//TODO: the distribution expects the href of repository and/or remote
 				// update the code to handle cases where users passed repo name or remote name instead of href
 				dist := bindings.PythonPythonDistribution{
 					Name:       name,
 					BasePath:   basePath,
-					Repository: p.Repository,
-					Remote:     p.Remote,
+					Repository: pulpClient.Pulp.Repository,
+					Remote:     pulpClient.Pulp.Remote,
 				}
 				return request.PythonPythonDistribution(dist).Execute()
 			case "delete":
@@ -180,6 +164,8 @@ func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClie
 				return request.Execute()
 			}
 		case "remotes", "remote":
+			//TODO: missing update
+			//TODO: missing labels
 			switch action {
 			case "list":
 				request := client.RemotesPythonAPI.RemotesPythonPythonList(ctx, domain)
@@ -193,18 +179,18 @@ func (p PulpResource) PulpFunction(ctx context.Context, client *bindings.APIClie
 					return nil, nil, fmt.Errorf("ERROR! Falied to create a remote, at least a name must be provided")
 				}
 				var url string
-				if p.Url != nil {
-					url = *p.Url
+				if pulpClient.Pulp.Url != nil {
+					url = *pulpClient.Pulp.Url
 				}
 				remote := bindings.PythonPythonRemote{
 					Name:        name,
 					Url:         url,
-					Includes:    p.Includes,
-					Excludes:    p.Excludes,
-					Prereleases: p.Prereleases,
+					Includes:    pulpClient.Pulp.Includes,
+					Excludes:    pulpClient.Pulp.Excludes,
+					Prereleases: pulpClient.Pulp.Prereleases,
 				}
-				if p.Policy != nil {
-					policy, err := bindings.NewPolicy692EnumFromValue(*p.Policy)
+				if pulpClient.Pulp.Policy != nil {
+					policy, err := bindings.NewPolicy692EnumFromValue(*pulpClient.Pulp.Policy)
 					if err != nil {
 						return nil, nil, err
 					}
