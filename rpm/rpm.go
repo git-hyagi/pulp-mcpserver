@@ -54,10 +54,19 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 				Previous: result.Previous,
 				Names:    names,
 			}, httpResp, nil
+		case "label", "labels":
+			request := client.ContentPackagesAPI.ContentRpmPackagesList(ctx, domain)
+			if name != "" {
+				request = request.Name(name)
+			}
+			result, httpResp, err := request.Execute()
+			if err != nil {
+				return nil, httpResp, err
+			}
+			return client.ContentPackagesAPI.ContentRpmPackagesSetLabel(ctx, *result.Results[0].PulpHref).Execute()
 		}
 	case "repositories", "repository":
 		clientAPI := client.RepositoriesRpmAPI
-		//TODO: missing labels
 		switch action {
 		case "list":
 			request := clientAPI.RepositoriesRpmRpmList(ctx, domain)
@@ -65,6 +74,37 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 				request = request.NameIexact(name)
 			}
 			return request.Execute()
+
+		case "label", "labels":
+			request := clientAPI.RepositoriesRpmRpmList(ctx, domain)
+			if name != "" {
+				request = request.NameIexact(name)
+			}
+			repos, httpResp, err := request.Execute()
+			if err != nil {
+				return nil, httpResp, err
+			}
+			repoHref := pulp.TrimHrefPrefix(*repos.Results[0].PulpHref)
+			setLabel := bindings.SetLabel{
+				Key:   pulpClient.Pulp.Label.Key,
+				Value: pulpClient.Pulp.Label.Value,
+			}
+			return clientAPI.RepositoriesRpmRpmSetLabel(ctx, repoHref).SetLabel(setLabel).Execute()
+		case "unlabel":
+			request := clientAPI.RepositoriesRpmRpmList(ctx, domain)
+			if name != "" {
+				request = request.NameIexact(name)
+			}
+			repos, httpResp, err := request.Execute()
+			if err != nil {
+				return nil, httpResp, err
+			}
+			repoHref := pulp.TrimHrefPrefix(*repos.Results[0].PulpHref)
+			unsetLabel := bindings.UnsetLabel{
+				Key: pulpClient.Pulp.Label.Key,
+			}
+			return clientAPI.RepositoriesRpmRpmUnsetLabel(ctx, repoHref).UnsetLabel(unsetLabel).Execute()
+
 		case "create":
 			request := clientAPI.RepositoriesRpmRpmCreate(ctx, domain)
 			if name == "" {
@@ -143,7 +183,6 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 		}
 
 	case "distributions", "distribution":
-		//TODO: missing labels
 		clientAPI := client.DistributionsRpmAPI
 		switch action {
 		case "list":
@@ -153,6 +192,29 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 			}
 			result, httpResp, err := request.Execute()
 			return handleAsyncResponse(result, httpResp, err)
+
+		case "label", "labels":
+			href, err := getRpmDistributionHref(ctx, clientAPI, domain, name)
+			if err != nil {
+				return nil, nil, err
+			}
+			distHref := pulp.TrimHrefPrefix(href)
+			setLabel := bindings.SetLabel{
+				Key:   pulpClient.Pulp.Label.Key,
+				Value: pulpClient.Pulp.Label.Value,
+			}
+			return clientAPI.DistributionsRpmRpmSetLabel(ctx, distHref).SetLabel(setLabel).Execute()
+		case "unlabel":
+			href, err := getRpmDistributionHref(ctx, clientAPI, domain, name)
+			if err != nil {
+				return nil, nil, err
+			}
+			distHref := pulp.TrimHrefPrefix(href)
+			unsetLabel := bindings.UnsetLabel{
+				Key: pulpClient.Pulp.Label.Key,
+			}
+			return clientAPI.DistributionsRpmRpmUnsetLabel(ctx, distHref).UnsetLabel(unsetLabel).Execute()
+
 		case "create":
 			request := clientAPI.DistributionsRpmRpmCreate(ctx, domain)
 			if name == "" {
@@ -210,8 +272,6 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 			return request.Execute()
 		}
 	case "remotes", "remote":
-		//TODO: missing update
-		//TODO: missing labels
 		clientAPI := client.RemotesRpmAPI
 		switch action {
 		case "list":
@@ -220,6 +280,37 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 				request = request.NameIexact(name)
 			}
 			return request.Execute()
+
+		case "label", "labels":
+			request := clientAPI.RemotesRpmRpmList(ctx, domain)
+			if name != "" {
+				request = request.NameIexact(name)
+			}
+			remote, httpResp, err := request.Execute()
+			if err != nil {
+				return nil, httpResp, err
+			}
+			distHref := pulp.TrimHrefPrefix(*remote.Results[0].PulpHref)
+			setLabel := bindings.SetLabel{
+				Key:   pulpClient.Pulp.Label.Key,
+				Value: pulpClient.Pulp.Label.Value,
+			}
+			return clientAPI.RemotesRpmRpmSetLabel(ctx, distHref).SetLabel(setLabel).Execute()
+		case "unlabel":
+			request := clientAPI.RemotesRpmRpmList(ctx, domain)
+			if name != "" {
+				request = request.NameIexact(name)
+			}
+			dist, httpResp, err := request.Execute()
+			if err != nil {
+				return nil, httpResp, err
+			}
+			remoteHref := pulp.TrimHrefPrefix(*dist.Results[0].PulpHref)
+			unsetLabel := bindings.UnsetLabel{
+				Key: pulpClient.Pulp.Label.Key,
+			}
+			return clientAPI.RemotesRpmRpmUnsetLabel(ctx, remoteHref).UnsetLabel(unsetLabel).Execute()
+
 		case "create":
 			request := clientAPI.RemotesRpmRpmCreate(ctx, domain)
 			if name == "" {
