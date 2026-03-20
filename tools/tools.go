@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"pulp-mcpserver/pulp"
 	"pulp-mcpserver/python"
+	"pulp-mcpserver/rpm"
 	"strings"
 
 	"github.com/git-hyagi/pulp-bindings-go/bindings"
@@ -22,6 +23,8 @@ func PulpFunction(ctx context.Context, pulpClient pulp.PulpClient) (any, any, er
 	switch plugin {
 	case "python":
 		return python.PythonTools(ctx, pulpClient)
+	case "rpm":
+		return rpm.RPMTools(ctx, pulpClient)
 	}
 	return nil, nil, nil
 }
@@ -41,7 +44,7 @@ func (p *PulpClient) PulpTool(ctx context.Context, req *mcp.CallToolRequest, in 
 
 	pulpFunc, _, err := PulpFunction(authCtx, *p.PulpClient)
 	if err != nil {
-		return nil, nil, fmt.Errorf("ERROR! Failed to get resource function %w", err)
+		return nil, nil, fmt.Errorf("ERROR! Failed to get resource function: %w", err)
 	}
 	return nil, pulpFunc, nil
 }

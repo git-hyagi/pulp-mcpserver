@@ -2,6 +2,7 @@ package pulp
 
 import (
 	"context"
+	"strings"
 
 	"github.com/git-hyagi/pulp-bindings-go/bindings"
 )
@@ -20,6 +21,20 @@ func NewPulpClient(client *bindings.APIClient, auth bindings.BasicAuth) *PulpCli
 
 func (p *PulpClient) AuthCtx(ctx context.Context) context.Context {
 	return context.WithValue(ctx, bindings.ContextBasicAuth, p.Auth)
+}
+
+func GetPulpDomain(domain *string) string {
+	if domain != nil && *domain != "" {
+		return *domain
+	}
+	return "default"
+}
+
+// trimHrefPrefix strips the leading slash from a pulp_href to work around
+// the Go OpenAPI bindings using url.PathEscape on href path parameters,
+// which causes a double-slash in the request URL (e.g. //api/pulp/...).
+func TrimHrefPrefix(pulp_href string) string {
+	return strings.TrimPrefix(pulp_href, "/")
 }
 
 type PulpResource struct {
@@ -42,6 +57,8 @@ type PulpResource struct {
 	Autopublish *bool   `json:"autopublish,omitempty" jsonschema:"Auto-publish after content changes."`
 
 	// Fields for distributions
-	BasePath   *string `json:"base_path,omitempty" jsonschema:"Base path for the distribution URL (required for distribution create)."`
-	Repository *string `json:"repository,omitempty" jsonschema:"Repository to serve (pulp_href or name). Used by distributions."`
+	BasePath     *string `json:"base_path,omitempty" jsonschema:"Base path for the distribution URL (required for distribution create)."`
+	Repository   *string `json:"repository,omitempty" jsonschema:"Repository to serve (pulp_href or name). Used by distributions."`
+	Publication  *string `json:"publication,omitempty" jsonschema:"Publication to be served."`
+	ContentGuard *string `json:"content_guard,omitempty" jsonschema:"Guard Pulp content distribution"`
 }
