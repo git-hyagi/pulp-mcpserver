@@ -42,7 +42,7 @@ type PulpResource struct {
 	Name     *string `json:"name,omitempty" jsonschema:"Filter contents by name. Leave empty to list all."`
 	Plugin   string  `json:"plugin,omitempty" jsonschema:"Pulp plugin. Can be one of: python, rpm"`
 	Resource string  `json:"resource,omitempty" jsonschema:"Pulp resource. Cane be one of: distribution,remote,repository,content,package"`
-	Action   string  `json:"action,omitempty" jsonschema:"Action to take. Can be one of: create, read, list, update, delete, sync"`
+	Action   string  `json:"action,omitempty" jsonschema:"Action to take. Can be one of: create, read, list, update, delete, sync, label, unlabel"`
 
 	// Fields for remotes
 	Url         *string  `json:"url,omitempty" jsonschema:"URL of the remote source (required for remote create)."`
@@ -61,4 +61,12 @@ type PulpResource struct {
 	Repository   *string `json:"repository,omitempty" jsonschema:"Repository to serve (pulp_href or name). Used by distributions."`
 	Publication  *string `json:"publication,omitempty" jsonschema:"Publication to be served."`
 	ContentGuard *string `json:"content_guard,omitempty" jsonschema:"Guard Pulp content distribution"`
+
+	// Labels
+	Label *Label `json:"label,omitempty" jsonschema:"Pulp label"`
+}
+
+type Label struct {
+	Key   string `json:"key" validate:"regexp=^[-a-zA-Z0-9_]+$" jsonschema:"Label key"`
+	Value string `json:"value" jsonschema:"Label value"`
 }
