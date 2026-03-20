@@ -2,7 +2,9 @@ package python
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"pulp-mcpserver/pulp"
 	"strings"
 
@@ -191,4 +193,39 @@ func PythonTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, err
 		}
 	}
 	return nil, nil, nil
+}
+
+// GetPythonDistributionHref resolves an python distribution name to its pulp_href.
+// Falls back to raw JSON parsing when the Go bindings reject valid Pulp
+// responses containing fields not present in the generated struct
+// (e.g. repository_version).
+func GetPythonDistributionHref(ctx context.Context, clientAPI *bindings.DistributionsPypiAPIService, domain, name string) (string, error) {
+	request := clientAPI.DistributionsPythonPypiList(ctx, domain)
+	result, httpResp, err := request.Name(name).Execute()
+	if err == nil {
+		if len(result.Results) == 0 {
+			return "", fmt.Errorf("distribution '%s' not found", name)
+		}
+		return *result.Results[0].PulpHref, nil
+	}
+
+	if httpResp != nil && httpResp.StatusCode >= 200 && httpResp.StatusCode < 300 {
+		body, readErr := io.ReadAll(httpResp.Body)
+		if readErr != nil {
+			return "", err
+		}
+		var raw struct {
+			Results []struct {
+				PulpHref string `json:"pulp_href"`
+			} `json:"results"`
+		}
+		if jsonErr := json.Unmarshal(body, &raw); jsonErr != nil {
+			return "", err
+		}
+		if len(raw.Results) == 0 {
+			return "", fmt.Errorf("distribution '%s' not found", name)
+		}
+		return raw.Results[0].PulpHref, nil
+	}
+	return "", err
 }

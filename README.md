@@ -1,7 +1,7 @@
 # pulp-mcpserver
 
 
-* configuring
+## configuring
 ```json
     "pulp-mcp": {
       "command": "bash",
@@ -16,3 +16,8 @@
       }
     }
 ```
+
+## prompt samples
+  * onboard me to pulp rpm in test domain
+  * create a pulp rpm repository called test
+  * list all python distributions in test domain

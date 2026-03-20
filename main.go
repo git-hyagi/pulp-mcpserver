@@ -46,6 +46,7 @@ func main() {
 	server := mcp.NewServer(&mcp.Implementation{Name: "pulp-mcp", Version: "v0.0.1"}, nil)
 
 	mcp.AddTool(server, &mcp.Tool{Name: "pulp_manage_resources", Description: "CRUD for all pulp plugins (rpm,python) resources (repositories,remotes,distributions,contents,packages)"}, pulpClientTools.PulpTool)
+	mcp.AddTool(server, &mcp.Tool{Name: "pulp_onboarding", Description: "Prepare the environment to onboard new users"}, pulpClientTools.PulpOnboardingTool)
 
 	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		log.Fatal(err)

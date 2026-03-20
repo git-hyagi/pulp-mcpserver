@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"pulp-mcpserver/onboarding"
 	"pulp-mcpserver/pulp"
 	"pulp-mcpserver/python"
 	"pulp-mcpserver/rpm"
@@ -43,6 +44,21 @@ func (p *PulpClient) PulpTool(ctx context.Context, req *mcp.CallToolRequest, in 
 	authCtx := p.AuthCtx(ctx)
 
 	pulpFunc, _, err := PulpFunction(authCtx, *p.PulpClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ERROR! Failed to get resource function: %w", err)
+	}
+	return nil, pulpFunc, nil
+}
+
+func (p *PulpClient) PulpOnboardingTool(ctx context.Context, req *mcp.CallToolRequest, in pulp.PulpResource) (
+	*mcp.CallToolResult,
+	any,
+	error,
+) {
+	p.Pulp = in
+	authCtx := p.AuthCtx(ctx)
+
+	pulpFunc, _, err := onboarding.OnboardingTools(authCtx, *p.PulpClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("ERROR! Failed to get resource function: %w", err)
 	}

@@ -194,7 +194,7 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 			return handleAsyncResponse(result, httpResp, err)
 
 		case "label", "labels":
-			href, err := getRpmDistributionHref(ctx, clientAPI, domain, name)
+			href, err := GetRpmDistributionHref(ctx, clientAPI, domain, name)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -205,7 +205,7 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 			}
 			return clientAPI.DistributionsRpmRpmSetLabel(ctx, distHref).SetLabel(setLabel).Execute()
 		case "unlabel":
-			href, err := getRpmDistributionHref(ctx, clientAPI, domain, name)
+			href, err := GetRpmDistributionHref(ctx, clientAPI, domain, name)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -234,7 +234,7 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 			}
 			return request.RpmRpmDistribution(dist).Execute()
 		case "update":
-			href, err := getRpmDistributionHref(ctx, clientAPI, domain, name)
+			href, err := GetRpmDistributionHref(ctx, clientAPI, domain, name)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -264,7 +264,7 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 			result, httpResp, err := request.PatchedrpmRpmDistribution(distribution).Execute()
 			return handleAsyncResponse(result, httpResp, err)
 		case "delete":
-			href, err := getRpmDistributionHref(ctx, clientAPI, domain, name)
+			href, err := GetRpmDistributionHref(ctx, clientAPI, domain, name)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -358,11 +358,11 @@ func RPMTools(ctx context.Context, pulpClient pulp.PulpClient) (any, any, error)
 	return nil, nil, nil
 }
 
-// getRpmDistributionHref resolves an RPM distribution name to its pulp_href.
+// GetRpmDistributionHref resolves an RPM distribution name to its pulp_href.
 // Falls back to raw JSON parsing when the Go bindings reject valid Pulp
 // responses containing fields not present in the generated struct
 // (e.g. repository_version).
-func getRpmDistributionHref(ctx context.Context, clientAPI *bindings.DistributionsRpmAPIService, domain, name string) (string, error) {
+func GetRpmDistributionHref(ctx context.Context, clientAPI *bindings.DistributionsRpmAPIService, domain, name string) (string, error) {
 	request := clientAPI.DistributionsRpmRpmList(ctx, domain)
 	result, httpResp, err := request.Name(name).Execute()
 	if err == nil {
